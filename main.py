@@ -1,5 +1,6 @@
 from core.browser import create_browser
 from core.navigator import open_zip
+from games.zip import ZipGame
 
 
 def main():
@@ -7,8 +8,8 @@ def main():
 
     open_zip(driver)
 
-    input("Zip opened. Press Enter to exit...")
-    driver.quit()
+    game = ZipGame(driver)
+    game.play()
 
 
 if __name__ == "__main__":
