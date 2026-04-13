@@ -1,44 +1,67 @@
 from selenium.webdriver.common.by import By
 from games.base import BaseGame
-import time
 
 
 class ZipGame(BaseGame):
 
     def play(self):
-        print("Zip bot started...")
+        print("Smart Zip AI started...")
 
         while True:
             try:
-                buttons = self.driver.find_elements(By.TAG_NAME, "button")
+                cells = self.get_clickable_cells()
 
-                for b in buttons:
-                    if self.is_game_button(b):
-                        self.fast_click(b)
+                if not cells:
+                    continue
+
+                target = self.pick_next(cells)
+
+                if target:
+                    self.click(target)
 
             except Exception:
                 pass
 
-    def is_game_button(self, element):
+    def get_clickable_cells(self):
+        cells = self.driver.find_elements(
+            By.CSS_SELECTOR,
+            '[data-testid^="cell-"][role="button"]'
+        )
+
+        valid = []
+
+        for c in cells:
+            try:
+                state = c.get_attribute("aria-describedby")
+
+                # ignore already connected
+                if state == "zip-cell-connected":
+                    continue
+
+                number = self.extract_number(c)
+
+                if number is not None:
+                    valid.append((number, c))
+
+            except:
+                continue
+
+        return valid
+
+    def extract_number(self, element):
         try:
-            text = element.text.strip().lower()
-
-            # ignore UI buttons
-            ignore = ["share", "copy", "close", "help", "settings"]
-
-            if any(word in text for word in ignore):
-                return False
-
-            # must be visible & enabled
-            if not element.is_displayed():
-                return False
-
-            return True
-
+            label = element.get_attribute("aria-label")
+            # "Number 5" → 5
+            return int(label.split(" ")[1])
         except:
-            return False
+            return None
 
-    def fast_click(self, element):
+    def pick_next(self, cells):
+        # pick smallest number
+        cells.sort(key=lambda x: x[0])
+        return cells[0][1]
+
+    def click(self, element):
         try:
             self.driver.execute_script(
                 "arguments[0].click();", element
