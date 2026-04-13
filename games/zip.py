@@ -1,70 +1,149 @@
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from games.base import BaseGame
+import time
 
 
 class ZipGame(BaseGame):
 
+    def __init__(self, driver):
+        super().__init__(driver)
+        self.size = 6
+
     def play(self):
-        print("Smart Zip AI started...")
+        print("\n=== ZIP SOLVER ===")
 
-        while True:
-            try:
-                cells = self.get_clickable_cells()
+        grid = self.get_grid()
 
-                if not cells:
-                    continue
+        numbers = {v["num"]: k for k, v in grid.items() if v["num"]}
+        max_num = max(numbers.keys())
 
-                target = self.pick_next(cells)
+        print("[NUMBERS]", numbers)
 
-                if target:
-                    self.click(target)
+        path = self.solve(grid, numbers, max_num)
 
-            except Exception:
-                pass
+        if not path:
+            print("[FAIL] No solution")
+            return
 
-    def get_clickable_cells(self):
-        cells = self.driver.find_elements(
+        print("[SOLUTION]", path)
+
+        self.execute(path)
+
+    # GRID PARSER
+    def get_grid(self):
+        elements = self.driver.find_elements(
             By.CSS_SELECTOR,
-            '[data-testid^="cell-"][role="button"]'
+            '[data-testid^="cell-"]'
         )
 
-        valid = []
+        grid = {}
 
-        for c in cells:
+        for el in elements:
             try:
-                state = c.get_attribute("aria-describedby")
+                idx = int(el.get_attribute("data-cell-idx"))
 
-                # ignore already connected
-                if state == "zip-cell-connected":
-                    continue
+                label = el.get_attribute("aria-label")
+                num = None
+                if label and "Number" in label:
+                    num = int(label.split(" ")[1])
 
-                number = self.extract_number(c)
-
-                if number is not None:
-                    valid.append((number, c))
+                grid[idx] = {
+                    "el": el,
+                    "num": num
+                }
 
             except:
                 continue
 
-        return valid
+        return grid
 
-    def extract_number(self, element):
-        try:
-            label = element.get_attribute("aria-label")
-            # "Number 5" → 5
-            return int(label.split(" ")[1])
-        except:
+    # DFS SOLVER
+    def solve(self, grid, numbers, max_num):
+
+        start = numbers[1]
+
+        def get_neighbors(pos):
+            r, c = divmod(pos, self.size)
+            dirs = [(-1,0),(1,0),(0,-1),(0,1)]
+
+            result = []
+            for dr, dc in dirs:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.size and 0 <= nc < self.size:
+                    result.append(nr * self.size + nc)
+            return result
+
+        def is_dead_end(pos, visited):
+            # if a cell has no unvisited neighbors → bad path
+            for n in get_neighbors(pos):
+                if n not in visited:
+                    return False
+            return True
+
+        def dfs(pos, visited, current_num):
+
+            # solved
+            if len(visited) == self.size * self.size:
+                return visited
+
+            neighbors = get_neighbors(pos)
+
+            # PRIORITY: go toward next number
+            def priority(n):
+                cell_num = grid[n]["num"]
+                if cell_num == current_num + 1:
+                    return 0
+                return 1
+
+            neighbors.sort(key=priority)
+
+            for nxt in neighbors:
+
+                if nxt in visited:
+                    continue
+
+                cell_num = grid[nxt]["num"]
+
+                # enforce number order
+                if cell_num:
+                    if cell_num != current_num + 1:
+                        continue
+                    next_num = current_num + 1
+                else:
+                    next_num = current_num
+
+                # prune dead ends
+                if is_dead_end(nxt, visited):
+                    continue
+
+                result = dfs(nxt, visited + [nxt], next_num)
+
+                if result:
+                    return result
+
             return None
 
-    def pick_next(self, cells):
-        # pick smallest number
-        cells.sort(key=lambda x: x[0])
-        return cells[0][1]
+        return dfs(start, [start], 1)
 
-    def click(self, element):
-        try:
-            self.driver.execute_script(
-                "arguments[0].click();", element
-            )
-        except:
-            pass
+
+    # EXECUTE PATH
+    def execute(self, path):
+        print("[EXECUTE]")
+
+        for idx in path:
+            try:
+                el = self.driver.find_element(
+                    By.CSS_SELECTOR,
+                    f'[data-cell-idx="{idx}"]'
+                )
+
+                ActionChains(self.driver)\
+                    .move_to_element(el)\
+                    .click()\
+                    .perform()
+
+                time.sleep(0.02)
+
+            except Exception as e:
+                print("[CLICK ERROR]", e)
