@@ -10,8 +10,9 @@ class ZipGame(BaseGame):
         super().__init__(driver)
         self.size = 6
 
+    #auto mode
     def play(self):
-        print("\n=== ZIP SOLVER ===")
+        print("\n=== ZIP AI SOLVER ===")
 
         grid = self.get_grid()
 
@@ -29,6 +30,42 @@ class ZipGame(BaseGame):
         print("[SOLUTION]", path)
 
         self.execute(path)
+
+    # MANUAL MODE
+    def play_with_solution(self, path):
+        print("\n=== MANUAL PLAY MODE ===")
+        print("[PATH]", path)
+
+        if not path or len(path) < 2:
+            print("[ERROR] Invalid path")
+            return
+
+        for i, idx in enumerate(path):
+            try:
+                print(f"[STEP {i+1}] Clicking {idx}")
+
+                el = self.driver.find_element(
+                    By.CSS_SELECTOR,
+                    f'[data-cell-idx="{idx}"]'
+                )
+
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block: 'center'});",
+                    el
+                )
+
+                ActionChains(self.driver)\
+                    .move_to_element(el)\
+                    .click()\
+                    .perform()
+
+                time.sleep(0.02)
+
+            except Exception as e:
+                print("[ERROR]", e)
+                break
+
+        print("[DONE] Path executed\n")
 
     # GRID PARSER
     def get_grid(self):
@@ -58,7 +95,7 @@ class ZipGame(BaseGame):
 
         return grid
 
-    # DFS SOLVER
+    # SOLVER
     def solve(self, grid, numbers, max_num):
 
         start = numbers[1]
@@ -74,29 +111,18 @@ class ZipGame(BaseGame):
                     result.append(nr * self.size + nc)
             return result
 
-        def is_dead_end(pos, visited):
-            # if a cell has no unvisited neighbors → bad path
-            for n in get_neighbors(pos):
-                if n not in visited:
-                    return False
-            return True
-
         def dfs(pos, visited, current_num):
 
-            # solved
+            # finished full grid
             if len(visited) == self.size * self.size:
                 return visited
 
             neighbors = get_neighbors(pos)
 
-            # PRIORITY: go toward next number
-            def priority(n):
-                cell_num = grid[n]["num"]
-                if cell_num == current_num + 1:
-                    return 0
-                return 1
-
-            neighbors.sort(key=priority)
+            # prioritize next number
+            neighbors.sort(
+                key=lambda n: 0 if grid[n]["num"] == current_num + 1 else 1
+            )
 
             for nxt in neighbors:
 
@@ -105,7 +131,7 @@ class ZipGame(BaseGame):
 
                 cell_num = grid[nxt]["num"]
 
-                # enforce number order
+                # enforce sequence
                 if cell_num:
                     if cell_num != current_num + 1:
                         continue
@@ -113,9 +139,15 @@ class ZipGame(BaseGame):
                 else:
                     next_num = current_num
 
-                # prune dead ends
-                if is_dead_end(nxt, visited):
-                    continue
+                # light pruning (safe)
+                if cell_num is None:
+                    dead = True
+                    for nn in get_neighbors(nxt):
+                        if nn not in visited:
+                            dead = False
+                            break
+                    if dead:
+                        continue
 
                 result = dfs(nxt, visited + [nxt], next_num)
 
@@ -126,13 +158,14 @@ class ZipGame(BaseGame):
 
         return dfs(start, [start], 1)
 
-
-    # EXECUTE PATH
+    # EXECUTION
     def execute(self, path):
-        print("[EXECUTE]")
+        print("\n[EXECUTE PATH]")
 
-        for idx in path:
+        for i, idx in enumerate(path):
             try:
+                print(f"[STEP {i+1}] {idx}")
+
                 el = self.driver.find_element(
                     By.CSS_SELECTOR,
                     f'[data-cell-idx="{idx}"]'
@@ -147,3 +180,4 @@ class ZipGame(BaseGame):
 
             except Exception as e:
                 print("[CLICK ERROR]", e)
+                break

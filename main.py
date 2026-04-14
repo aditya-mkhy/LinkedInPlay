@@ -11,6 +11,8 @@ def main():
     game = ZipGame(driver)
     game.play()
 
+    confirmation = input("Press enter to quit....")
+
 
 if __name__ == "__main__":
     main()
