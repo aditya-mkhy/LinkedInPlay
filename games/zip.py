@@ -32,8 +32,13 @@ class ZipGame(BaseGame):
         self.execute(path)
 
     # MANUAL MODE
-    def play_with_solution(self, path):
+    def play_with_solution(self, path, is_start_with_0 = False):
         print("\n=== MANUAL PLAY MODE ===")
+
+        if not is_start_with_0:
+            # if not start from 0 index
+            path = [x-1 for x in path]
+
         print("[PATH]", path)
 
         if not path or len(path) < 2:
