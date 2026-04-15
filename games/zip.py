@@ -32,45 +32,55 @@ class ZipGame(BaseGame):
         self.execute(path)
 
     # MANUAL MODE
-    def play_with_solution(self, path, is_start_with_0 = False):
-        print("\n=== MANUAL PLAY MODE ===")
-
-        if not is_start_with_0:
-            # if not start from 0 index
-            path = [x-1 for x in path]
-
-        print("[PATH]", path)
+    def play_with_solution(self, path, is_start_with_0=False):
+        print("\n=== MANUAL PLAY MODE (FAST) ===")
 
         if not path or len(path) < 2:
             print("[ERROR] Invalid path")
             return
 
+        # normalize index
+        if not is_start_with_0:
+            path = [x - 1 for x in path]
+
+        # CACHE ALL CELLS (FOR SPEED)
+        elements = self.driver.find_elements(
+            By.CSS_SELECTOR,
+            '[data-testid^="cell-"]'
+        )
+
+        cell_map = {}
+        for el in elements:
+            try:
+                idx = int(el.get_attribute("data-cell-idx"))
+                cell_map[idx] = el
+            except:
+                pass
+
+        print("[INFO] Cached cells:", len(cell_map))
+
+        # FAST CLICK LOOP
         for i, idx in enumerate(path):
             try:
-                print(f"[STEP {i+1}] Clicking {idx}")
+                el = cell_map.get(idx)
 
-                el = self.driver.find_element(
-                    By.CSS_SELECTOR,
-                    f'[data-cell-idx="{idx}"]'
-                )
+                if not el:
+                    print(f"[SKIP] {idx} not found")
+                    continue
 
+                #FASTEST CLICK (JS)
                 self.driver.execute_script(
-                    "arguments[0].scrollIntoView({block: 'center'});",
-                    el
+                    "arguments[0].click();", el
                 )
 
-                ActionChains(self.driver)\
-                    .move_to_element(el)\
-                    .click()\
-                    .perform()
-
-                time.sleep(0.02)
+                time.sleep(0.005)
 
             except Exception as e:
                 print("[ERROR]", e)
                 break
 
-        print("[DONE] Path executed\n")
+        print("[DONE] Fast execution complete\n")
+    
 
     # GRID PARSER
     def get_grid(self):
