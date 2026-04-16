@@ -192,3 +192,11 @@ class ZipGame(BaseGame):
             except Exception as e:
                 print("[CLICK ERROR]", e)
                 break
+
+
+
+    def is_completed(self):
+        return len(self.driver.find_elements(
+            By.XPATH,
+            "//span[contains(text(),'result')]"
+        )) > 0

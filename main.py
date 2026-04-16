@@ -9,7 +9,13 @@ def main():
     open_zip(driver)
 
     game = ZipGame(driver)
+
+    if game.is_completed():
+        print("[SKIP] Already played")
+        return
+
     # game.play()
+
 
     path = [11, 17, 16, 22, 23, 29, 27, 33, 36, 6, 4, 10, 8, 14, 15, 21, 20,32, 31, 1, 3]
     

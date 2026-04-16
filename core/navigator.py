@@ -14,7 +14,7 @@ def open_games_home(driver):
 
 def open_zip(driver):
     driver.get(ZIP_GAME)
-    wait = WebDriverWait(driver, 10)
+    wait = WebDriverWait(driver, 10, poll_frequency=0.05)
 
     # wait for page load (fastest baseline)
     wait.until(lambda d: d.execute_script(
