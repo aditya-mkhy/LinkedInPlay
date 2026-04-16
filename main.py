@@ -11,7 +11,7 @@ def main():
     game = ZipGame(driver)
     # game.play()
 
-    path = [21, 9, 10, 22, 24, 18, 17, 11, 12, 6, 1, 7, 8, 14, 13, 31, 32, 26, 27, 33, 34, 28, 29, 35, 36, 30]
+    path = [11, 17, 16, 22, 23, 29, 27, 33, 36, 6, 4, 10, 8, 14, 15, 21, 20,32, 31, 1, 3]
     
     game.play_with_solution(path, is_start_with_0 = False)
 

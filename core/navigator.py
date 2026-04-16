@@ -1,4 +1,6 @@
 import time
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
 
 
 LINKEDIN_GAMES = "https://www.linkedin.com/games/"
@@ -12,4 +14,17 @@ def open_games_home(driver):
 
 def open_zip(driver):
     driver.get(ZIP_GAME)
-    time.sleep(3)
+    wait = WebDriverWait(driver, 10)
+
+    # wait for page load (fastest baseline)
+    wait.until(lambda d: d.execute_script(
+        "return document.readyState"
+    ) == "complete")
+
+    # wait for actual game cells (REAL readiness)
+    wait.until(lambda d: len(d.find_elements(
+        By.CSS_SELECTOR,
+        '[data-testid^="cell-"]'
+    )) > 0)
+
+    print("[READY] Zip grid loaded")
