@@ -67,7 +67,7 @@ class ZipGame(BaseGame):
                     .perform()
 
 
-                time.sleep(0.002)
+                time.sleep(0.0001)
 
             except Exception as e:
                 print("[ERROR]", e)
@@ -187,7 +187,7 @@ class ZipGame(BaseGame):
                     .click()\
                     .perform()
 
-                time.sleep(0.02)
+                time.sleep(0.005)
 
             except Exception as e:
                 print("[CLICK ERROR]", e)

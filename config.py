@@ -1,2 +1,1 @@
 KILL_EDGE_ON_START = True
-
