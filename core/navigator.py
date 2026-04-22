@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 LINKEDIN_GAMES = "https://www.linkedin.com/games/"
 ZIP_GAME = "https://www.linkedin.com/games/zip/"
 PATCHES = "https://www.linkedin.com/games/patches/"
+QUEENS = "https://www.linkedin.com/games/queens/"
 
 
 def open_games_home(driver):
@@ -19,6 +20,8 @@ def open_zip(driver):
 def open_patches(driver):
     open_game(driver, PATCHES)
 
+def open_queens(driver):
+    open_game(driver, QUEENS)
 
 def open_game(driver, url):
     driver.get(url)

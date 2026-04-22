@@ -1,5 +1,6 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import StaleElementReferenceException
 from games.base import BaseGame
 import time
 import re
@@ -158,25 +159,78 @@ class QueensGame(BaseGame):
 
         return backtrack(0)
 
-    # ==========================================
-    # EXECUTE
-    # ==========================================
     def execute(self, solution):
+        print("[PLAYING BULLETPROOF]")
 
-        print("[PLAYING]")
 
-        for cell in solution:
+        for move_no, cell in enumerate(solution, start=1):
 
-            if cell["queen"]:
+            idx = cell["idx"]
+
+            # skip already queen
+            if self.is_queen(idx):
+                print(f"[SKIP] idx={idx} already queen")
                 continue
 
-            try:
-                self.driver.execute_script(
-                    "arguments[0].click();",
-                    cell["el"]
-                )
+            success = False
 
-                time.sleep(0.03)
+            for attempt in range(1, 4):
 
-            except Exception as e:
-                print("[ERROR]", e)
+                try:
+                    el = self.driver.find_element(
+                        By.CSS_SELECTOR,
+                        f'[data-cell-idx="{idx}"]'
+                    )
+
+                    print(
+                        f"[MOVE {move_no}] "
+                        f"idx={idx} "
+                        f"(try {attempt})"
+                    )
+
+                    self.driver.execute_script(
+                        "arguments[0].scrollIntoView({block:'center'});",
+                        el
+                    )
+
+                    ActionChains(self.driver)\
+                        .move_to_element(el)\
+                        .pause(0.02)\
+                        .click()\
+                        .pause(0.05)\
+                        .click()\
+                        .perform()
+
+                    time.sleep(0.08)
+
+                    # verify
+                    if self.is_queen(idx):
+                        print(f"[OK] Queen placed at {idx}")
+                        success = True
+                        break
+                    else:
+                        print(f"[RETRY] Queen not detected at {idx}")
+
+                except StaleElementReferenceException:
+                    print("[STALE] Retrying...")
+
+                except Exception as e:
+                    print("[ERROR]", e)
+
+            if not success:
+                print(f"[FAIL] Could not place queen at {idx}")
+
+
+    def is_queen(self, idx):
+        try:
+            el = self.driver.find_element(
+                By.CSS_SELECTOR,
+                f'[data-cell-idx="{idx}"]'
+            )
+
+            label = el.get_attribute("aria-label") or ""
+
+            return "Queen of color" in label
+
+        except:
+            return False
