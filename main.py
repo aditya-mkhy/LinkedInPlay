@@ -13,6 +13,10 @@ def main():
     open_queens(driver)
 
     game = QueensGame(driver)
+    if game.is_completed():
+        print("[SKIP] Already played")
+        return
+    
     game.play()
 
     # game = ZipGame(driver)

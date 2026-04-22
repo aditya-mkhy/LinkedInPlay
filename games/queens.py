@@ -4,6 +4,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 from games.base import BaseGame
 import time
 import re
+import random
 
 
 class QueensGame(BaseGame):
@@ -13,11 +14,30 @@ class QueensGame(BaseGame):
         self.size = 0
         self.cells = []
 
-    # ==========================================
-    # ENTRY
-    # ==========================================
-    def play(self):
+    def is_completed(self):
+        try:
+            elements = self.driver.find_elements(
+                By.XPATH,
+                "//span[contains(text(),'See results')]"
+            )
+
+            if elements:
+                print("[INFO] Queens already completed")
+                return True
+
+            return False
+
+        except Exception as e:
+            print("[CHECK ERROR]", e)
+            return False
+
+    # PLAY
+    def play(self, solve_in_sec=0, mistakes=False):
         print("\n=== QUEENS SOLVER ===")
+
+        if self.is_completed():
+            print("[SKIP] Already played today")
+            return
 
         self.parse_board()
 
@@ -27,13 +47,19 @@ class QueensGame(BaseGame):
             print("[FAIL] No solution")
             return
 
-        print("[SOLUTION]", solution)
+        print("[SOLUTION FOUND]")
 
-        self.execute(solution)
+        if solve_in_sec == 0:
+            self.execute(solution)
+        else:
+            self.execute_smart(
+                solution,
+                total_time=solve_in_sec,
+                mistakes=mistakes
+            )
 
-    # ==========================================
+
     # PARSE BOARD
-    # ==========================================
     def parse_board(self):
 
         grid = self.driver.find_element(
@@ -84,9 +110,8 @@ class QueensGame(BaseGame):
                 "el": el
             })
 
-    # ==========================================
+
     # SOLVER
-    # ==========================================
     def solve(self):
 
         board = self.cells
@@ -221,6 +246,86 @@ class QueensGame(BaseGame):
                 print(f"[FAIL] Could not place queen at {idx}")
 
 
+    def execute_smart(self, solution, total_time=8, mistakes=False):
+        print(f"[SMART MODE] target={total_time}s mistakes={mistakes}")
+
+
+        start = time.time()
+
+        moves = [c for c in solution if not c["queen"]]
+        total_moves = len(moves)
+
+        # reserve time for mistakes
+        extra = 1.0 if mistakes else 0.0
+
+        usable_time = max(1, total_time - extra)
+
+        base_delay = usable_time / max(1, total_moves)
+
+        # optional mistake slots
+        mistake_turns = set()
+        if mistakes and total_moves >= 4:
+            count = random.randint(1, 2)
+            while len(mistake_turns) < count:
+                mistake_turns.add(random.randint(1, total_moves - 1))
+
+        for i, cell in enumerate(moves, start=1):
+
+            # fake mistake before real move
+            if i in mistake_turns:
+                self.fake_mistake()
+
+            idx = cell["idx"]
+
+            print(f"[MOVE {i}/{total_moves}] idx={idx}")
+
+            self.place_queen(idx)
+
+            # natural variable delay
+            jitter = random.uniform(-0.20, 0.25) * base_delay
+            delay = max(0.05, base_delay + jitter)
+
+            time.sleep(delay)
+
+        spent = time.time() - start
+
+        # exact finish timing if early
+        if spent < total_time:
+            time.sleep(total_time - spent)
+
+        print("[DONE SMART]")
+
+
+    def place_queen(self, idx):
+
+        for _ in range(3):
+
+            if self.is_queen(idx):
+                return
+
+            el = self.driver.find_element(
+                By.CSS_SELECTOR,
+                f'[data-cell-idx="{idx}"]'
+            )
+
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({block:'center'});",
+                el
+            )
+
+            ActionChains(self.driver)\
+                .move_to_element(el)\
+                .pause(0.01)\
+                .click()\
+                .pause(0.03)\
+                .click()\
+                .perform()
+
+            time.sleep(0.05)
+
+            if self.is_queen(idx):
+                return
+
     def is_queen(self, idx):
         try:
             el = self.driver.find_element(
@@ -234,3 +339,38 @@ class QueensGame(BaseGame):
 
         except:
             return False
+        
+
+
+    def fake_mistake(self):
+        try:
+            cells = self.driver.find_elements(
+                By.CSS_SELECTOR,
+                '[data-testid^="cell-"]'
+            )
+
+            random.shuffle(cells)
+
+            for el in cells[:10]:
+
+                label = el.get_attribute("aria-label") or ""
+
+                # only empty cells
+                if "Empty cell" not in label:
+                    continue
+
+                print("[MISTAKE] fake X move")
+
+                ActionChains(self.driver)\
+                    .move_to_element(el)\
+                    .pause(0.01)\
+                    .click()\
+                    .pause(0.25)\
+                    .click()\
+                    .perform()
+
+                time.sleep(0.15)
+                return
+
+        except:
+            pass
