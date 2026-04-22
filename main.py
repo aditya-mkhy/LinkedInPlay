@@ -1,25 +1,29 @@
 from core.browser import create_browser
-from core.navigator import open_zip
+from core.navigator import open_zip, open_games_home, open_patches
 from games.zip import ZipGame
+from games.queens  import QueensGame
+
 
 
 def main():
     driver = create_browser()
+    open_games_home(driver)
 
     open_zip(driver)
 
-    game = ZipGame(driver)
+    game = QueensGame(driver)
+    game.play()
 
-    if game.is_completed():
-        print("[SKIP] Already played")
-        return
+    # game = ZipGame(driver)
 
-    # game.play()
+    # if game.is_completed():
+    #     print("[SKIP] Already played")
+    #     return
 
 
-    path = [45, 49, 7, 6, 13, 12, 5, 1, 8, 11, 18, 20, 27,26, 33, 34, 41, 39, 25, 24, 17, 15, 43, 44, 23]
+    # path = [30, 32, 25, 22, 43, 45, 38, 39, 46, 49, 42, 40, 19, 18, 11, 13, 34, 35, 7, 3, 10, 9, 2, 1, 15, 17]
     
-    game.play_with_solution(path, is_start_with_0 = False)
+    # game.play_with_solution(path, is_start_with_0 = False)
 
     confirmation = input("Press enter to quit....")
 
